@@ -1,46 +1,41 @@
-import { Card, Button, ButtonGroup, Form } from "react-bootstrap";
 import React from "react";
+import { Button, ButtonGroup, Card, Form } from "react-bootstrap";
 import { Link } from "react-router-dom";
+import cx from "classnames";
 import * as GQL from "src/core/generated-graphql";
-import { FormattedPlural } from "react-intl";
-import { useConfiguration } from "src/core/StashService";
-import { HoverPopover, Icon, TagLink } from "../Shared";
+import { Icon, TagLink, HoverPopover, SweatDrops } from "src/components/Shared";
+import { TextUtils } from "src/utils";
 
-interface IProps {
-  gallery: GQL.GalleryDataFragment;
+interface IImageCardProps {
+  image: GQL.SlimImageDataFragment;
   selecting?: boolean;
   selected: boolean | undefined;
   zoomIndex: number;
   onSelectedChanged: (selected: boolean, shiftKey: boolean) => void;
 }
 
-export const GalleryCard: React.FC<IProps> = (props) => {
-  const config = useConfiguration();
-  const showStudioAsText =
-    config?.data?.configuration.interface.showStudioAsText ?? false;
-
-  function maybeRenderScenePopoverButton() {
-    if (!props.gallery.scene) return;
-
-    const popoverContent = (
-      <TagLink key={props.gallery.scene.id} scene={props.gallery.scene} />
-    );
-
+export const ImageCard: React.FC<IImageCardProps> = (
+  props: IImageCardProps
+) => {
+  function maybeRenderRatingBanner() {
+    if (!props.image.rating) {
+      return;
+    }
     return (
-      <HoverPopover placement="bottom" content={popoverContent}>
-        <Link to={`/scenes/${props.gallery.scene.id}`}>
-          <Button className="minimal">
-            <Icon icon="play-circle" />
-          </Button>
-        </Link>
-      </HoverPopover>
+      <div
+        className={`rating-banner ${
+          props.image.rating ? `rating-${props.image.rating}` : ""
+        }`}
+      >
+        RATING: {props.image.rating}
+      </div>
     );
   }
 
   function maybeRenderTagPopoverButton() {
-    if (props.gallery.tags.length <= 0) return;
+    if (props.image.tags.length <= 0) return;
 
-    const popoverContent = props.gallery.tags.map((tag) => (
+    const popoverContent = props.image.tags.map((tag) => (
       <TagLink key={tag.id} tag={tag} />
     ));
 
@@ -48,16 +43,16 @@ export const GalleryCard: React.FC<IProps> = (props) => {
       <HoverPopover placement="bottom" content={popoverContent}>
         <Button className="minimal">
           <Icon icon="tag" />
-          <span>{props.gallery.tags.length}</span>
+          <span>{props.image.tags.length}</span>
         </Button>
       </HoverPopover>
     );
   }
 
   function maybeRenderPerformerPopoverButton() {
-    if (props.gallery.performers.length <= 0) return;
+    if (props.image.performers.length <= 0) return;
 
-    const popoverContent = props.gallery.performers.map((performer) => (
+    const popoverContent = props.image.performers.map((performer) => (
       <div className="performer-tag-container row" key={performer.id}>
         <Link
           to={`/performers/${performer.id}`}
@@ -77,37 +72,32 @@ export const GalleryCard: React.FC<IProps> = (props) => {
       <HoverPopover placement="bottom" content={popoverContent}>
         <Button className="minimal">
           <Icon icon="user" />
-          <span>{props.gallery.performers.length}</span>
+          <span>{props.image.performers.length}</span>
         </Button>
       </HoverPopover>
     );
   }
 
-  function maybeRenderSceneStudioOverlay() {
-    if (!props.gallery.studio) return;
-
-    return (
-      <div className="scene-studio-overlay">
-        <Link to={`/studios/${props.gallery.studio.id}`}>
-          {showStudioAsText ? (
-            props.gallery.studio.name
-          ) : (
-            <img
-              className="image-thumbnail"
-              alt={props.gallery.studio.name}
-              src={props.gallery.studio.image_path ?? ""}
-            />
-          )}
-        </Link>
-      </div>
-    );
+  function maybeRenderOCounter() {
+    if (props.image.o_counter) {
+      return (
+        <div>
+          <Button className="minimal">
+            <span className="fa-icon">
+              <SweatDrops />
+            </span>
+            <span>{props.image.o_counter}</span>
+          </Button>
+        </div>
+      );
+    }
   }
 
   function maybeRenderPopoverButtonGroup() {
     if (
-      props.gallery.scene ||
-      props.gallery.performers.length > 0 ||
-      props.gallery.tags.length > 0
+      props.image.tags.length > 0 ||
+      props.image.performers.length > 0 ||
+      props.image?.o_counter
     ) {
       return (
         <>
@@ -115,26 +105,11 @@ export const GalleryCard: React.FC<IProps> = (props) => {
           <ButtonGroup className="card-popovers">
             {maybeRenderTagPopoverButton()}
             {maybeRenderPerformerPopoverButton()}
-            {maybeRenderScenePopoverButton()}
+            {maybeRenderOCounter()}
           </ButtonGroup>
         </>
       );
     }
-  }
-
-  function maybeRenderRatingBanner() {
-    if (!props.gallery.rating) {
-      return;
-    }
-    return (
-      <div
-        className={`rating-banner ${
-          props.gallery.rating ? `rating-${props.gallery.rating}` : ""
-        }`}
-      >
-        RATING: {props.gallery.rating}
-      </div>
-    );
   }
 
   function handleImageClick(
@@ -167,13 +142,20 @@ export const GalleryCard: React.FC<IProps> = (props) => {
     ev.preventDefault();
   }
 
+  function isPortrait() {
+    const { file } = props.image;
+    const width = file.width ? file.width : 0;
+    const height = file.height ? file.height : 0;
+    return height > width;
+  }
+
   let shiftKey = false;
 
   return (
-    <Card className={`gallery-card zoom-${props.zoomIndex}`}>
+    <Card className={`image-card zoom-${props.zoomIndex}`}>
       <Form.Control
         type="checkbox"
-        className="gallery-card-check"
+        className="image-card-check"
         checked={props.selected}
         onChange={() => props.onSelectedChanged(!props.selected, shiftKey)}
         onClick={(event: React.MouseEvent<HTMLInputElement, MouseEvent>) => {
@@ -183,42 +165,33 @@ export const GalleryCard: React.FC<IProps> = (props) => {
         }}
       />
 
-      <div className="gallery-section">
+      <div className="image-section">
         <Link
-          to={`/galleries/${props.gallery.id}`}
-          className="gallery-card-header"
+          to={`/images/${props.image.id}`}
+          className="image-card-link"
           onClick={handleImageClick}
           onDragStart={handleDrag}
           onDragOver={handleDragOver}
           draggable={props.selecting}
         >
-          {props.gallery.cover ? (
+          <div className={cx("image-card-preview", { portrait: isPortrait() })}>
             <img
-              className="gallery-card-image"
-              alt={props.gallery.title ?? ""}
-              src={`${props.gallery.cover.paths.thumbnail}`}
+              className="image-card-preview-image"
+              alt={props.image.title ?? ""}
+              src={props.image.paths.thumbnail ?? ""}
             />
-          ) : undefined}
+          </div>
           {maybeRenderRatingBanner()}
         </Link>
-        {maybeRenderSceneStudioOverlay()}
       </div>
       <div className="card-section">
-        <Link to={`/galleries/${props.gallery.id}`}>
-          <h5 className="card-section-title">
-            {props.gallery.title ?? props.gallery.path}
-          </h5>
-        </Link>
-        <span>
-          {props.gallery.images.length}&nbsp;
-          <FormattedPlural
-            value={props.gallery.images.length ?? 0}
-            one="image"
-            other="images"
-          />
-          .
-        </span>
+        <h5 className="card-section-title">
+          {props.image.title
+            ? props.image.title
+            : TextUtils.fileNameFromPath(props.image.path)}
+        </h5>
       </div>
+
       {maybeRenderPopoverButtonGroup()}
     </Card>
   );
