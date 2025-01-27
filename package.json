@@ -15,8 +15,8 @@
     "eslint": "eslint",
     "prettier": "prettier",
     "stylelint": "stylelint",
-    "format": "prettier --write . ../../graphql",
-    "format-check": "prettier --check . ../../graphql",
+    "format": "prettier --write .",
+    "format-check": "prettier --check .",
     "gqlgen": "gql-gen --config codegen.ts",
     "extract": "NODE_ENV=development extract-messages -l=en,de -o src/locale -d en --flat false 'src/**/!(*.test).tsx'"
   },
