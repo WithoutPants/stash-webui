@@ -77,7 +77,7 @@ flags-static-windows:
 .PHONY: build-info
 build-info:
 ifndef BUILD_DATE
-	$(eval BUILD_DATE := $(shell go run scripts/getDate.go))
+	$(eval BUILD_DATE := $(shell date -u "+%Y-%m-%d %H:%M:%S"))
 endif
 ifndef GITHASH
 	$(eval GITHASH := $(shell git rev-parse --short HEAD))
