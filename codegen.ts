@@ -2,7 +2,7 @@ import type { CodegenConfig } from "@graphql-codegen/cli";
 
 const config: CodegenConfig = {
   schema: [
-    `${process.env.SCHEMA_PATH ?? "../stash/graphql/schema"}/**/*.graphql`,
+    `${process.env.SCHEMA_PATH ? (process.env.SCHEMA_PATH + "/**/*.graphql") : process.env.SCHEMA_URL ?? "http://localhost:9999/graphql"}`,
     "graphql/client-schema.graphql",
   ],
   config: {
